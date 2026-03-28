@@ -1,0 +1,72 @@
+name: Auto Retrain & Deploy
+
+# ── Triggers ──────────────────────────────────────────────────────────────────
+on:
+  push:
+    paths:
+      - "data/data.csv"        # New data pushed → retrain
+      - "model/train.py"       # Training code changed → retrain
+      - "app/main.py"          # API changed → redeploy
+  workflow_dispatch:           # Manual trigger from GitHub UI
+
+# ── Jobs ──────────────────────────────────────────────────────────────────────
+jobs:
+  retrain-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Checkout code
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+
+      # 2. Set up Python
+      - name: 🐍 Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      # 3. Install dependencies
+      - name: 📦 Install dependencies
+        run: pip install -r requirements.txt
+
+      # 4. Retrain model
+      - name: 🏋️ Retrain model
+        run: python model/train.py
+
+      # 5. Print metrics
+      - name: 📊 Show training metrics
+        run: cat metrics.json
+
+      # 6. Commit updated model.pkl + metrics back to repo
+      - name: 💾 Commit updated model
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add model.pkl metrics.json
+          git diff --cached --quiet || git commit -m "🤖 Auto-retrain: updated model.pkl [skip ci]"
+          git push
+
+      # 7. Build Docker image
+      - name: 🐳 Build Docker image
+        run: docker build -t house-price-api:latest .
+
+      # 8. Smoke test — start container, hit /health endpoint
+      - name: 🔍 Smoke test API
+        run: |
+          docker run -d --name api-test -p 8000:8000 house-price-api:latest
+          sleep 5
+          curl -f http://localhost:8000/health || (docker logs api-test && exit 1)
+          curl -f -X POST http://localhost:8000/predict \
+            -H "Content-Type: application/json" \
+            -d '{"area": 1500, "bedrooms": 3, "age": 10}'
+          docker stop api-test
+
+      # ── Optional: push to Docker Hub ────────────────────────────────────────
+      # Uncomment and add DOCKERHUB_USERNAME / DOCKERHUB_TOKEN to repo secrets.
+      #
+      # - name: 🚀 Push to Docker Hub
+      #   run: |
+      #     echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+      #     docker tag house-price-api:latest ${{ secrets.DOCKERHUB_USERNAME }}/house-price-api:latest
+      #     docker push ${{ secrets.DOCKERHUB_USERNAME }}/house-price-api:latest
