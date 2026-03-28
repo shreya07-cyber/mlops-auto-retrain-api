@@ -3,6 +3,8 @@
 A production-grade MLOps system that **automatically retrains and redeploys** a house price prediction model whenever new data is pushed to the repository.
 
 ---
+## 🎬 Demo
+![Demo](demo.gif)
 
 ## 📁 Project Structure
 
