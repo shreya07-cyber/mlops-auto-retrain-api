@@ -1,5 +1,8 @@
+![CI/CD](https://github.com/shreya07-cyber/mlops-auto-retrain-api/actions/workflows/train.yml/badge.svg)
+![Docker](https://img.shields.io/badge/Docker-ready-blue?logo=docker)
+![Python](https://img.shields.io/badge/Python-3.11-green?logo=python)
+![FastAPI](https://img.shields.io/badge/FastAPI-0.111-teal?logo=fastapi)
 # 🏠 MLOps: Automated House Price Retraining Pipeline
-
 A production-grade MLOps system that **automatically retrains and redeploys** a house price prediction model whenever new data is pushed to the repository.
 
 ---
